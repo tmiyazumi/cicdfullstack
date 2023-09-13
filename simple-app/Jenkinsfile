@@ -5,44 +5,46 @@ pipeline {
     imageName = 'tmiyazumi/jenkins_uf'
     dockerCredentialsName= 'dockerhub-creds'
     dockerImage = ''
-}
-stages {
-    stage('Environment') {
-        steps {
-            echo "Branch: ${env.BRANCH_NAME}"
-            sh 'docker -v'
-        }
     }
-    stage('Install dependencies') {
-        steps {
-            dir('simple-app'){
-                sh 'npm install'
+    stages {
+
+        stage('Environment') {
+            steps {
+                echo "Brandh: ${env.BRANCH_NAME}"
+                sh 'docker -v'
+            }
+        }
+        stage('Install dependencies') {
+            steps {
+                dir('simple-app') {
+                    sh 'npm install'
+                }
+            }
+        }
+        
+        stage('Test') {
+            steps {
+                dir('simple-app') {
+                    sh 'npm test'
+                }
+            }
+        }
+        stage('Building image') {
+            steps {
+                script {
+                    dockerImage = docker.build imageName
+                }
+            }
+        }
+        stage('Deploy Image') {
+            steps {
+                script {
+                    docker.withRegistry('https://registry.hub.docker.com', dockerCredentialsName) {
+                        dockerImage.push("${env.BUILD_NUMBER}")
+                        dockerImage.push("latest")
+                    }
+                }
             }
         }
     }
-    stage('Test') {
-        steps {
-            dir('simple-app'){
-                sh 'npm test'
-            }
-        }
-    }
-    stage('Building image') {
-        steps{
-            script {
-                dockerImage = docker.build imageName
-            }
-        }
-    }
-stage('Deploy Image') {
-    steps{
-        script {
-        docker.withRegistry('https://registry.hub.docker.com', dockerCredentialsName) {
-            dockerImage.push("${env.BUILD_NUMBER}")
-            dockerImage.push("latest")
-        }
-        }
-    }
-}
-}
 }
